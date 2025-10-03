@@ -72,13 +72,13 @@
     }
 </script>
 
-<div class="flex-1 flex p-6 bg-surface-800 rounded-xl shadow-lg">
+<div class="flex-1 flex p-6 bg-surface-900 rounded-xl shadow-lg">
     <div class="grid grid-cols-5 grid-rows-5 gap-4 w-full h-full">
         {#each gridCells as cell, i}
             <div
-                class="bg-surface-700/50 border-2 border-dashed border-surface-600 rounded-lg flex justify-center items-center transition-colors {dragOverIndex ===
+                class="bg-surface-800/50 border-2 border-dashed border-surface-700 rounded-lg flex justify-center items-center transition-colors {dragOverIndex ===
                 i
-                    ? 'bg-surface-700 border-blue-500'
+                    ? 'bg-surface-800 border-blue-500'
                     : ''}"
                 ondragover={(e) => handleDragOver(e as DragEvent, i)}
                 ondragleave={() => (dragOverIndex = -1)}

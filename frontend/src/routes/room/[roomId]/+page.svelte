@@ -97,10 +97,10 @@
 </script>
 
 <!-- TEMPLATE -->
-<div class="flex flex-row gap-8 w-full h-screen p-8 text-surface-200 bg-surface-900">
+<div class="flex flex-row gap-8 w-full h-screen p-8 text-surface-200">
     <!-- Available Cards Palette (Left Side) -->
     <div
-        class="w-1/4 flex-shrink-0 p-6 bg-surface-800 rounded-xl shadow-lg flex flex-col"
+        class="w-1/4 flex-shrink-0 p-6 bg-surface-900 rounded-xl shadow-lg flex flex-col"
         ondragover={(e) => e.preventDefault()}
         ondrop={handlePaletteDrop}
     >
