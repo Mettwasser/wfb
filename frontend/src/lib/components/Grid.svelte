@@ -72,7 +72,7 @@
     }
 </script>
 
-<div class="flex-1 flex p-6 bg-surface-900 rounded-xl shadow-lg">
+<div class="flex-1 flex p-6 bg-surface-900 card">
     <div class="grid grid-cols-5 grid-rows-5 gap-4 w-full h-full">
         {#each gridCells as cell, i}
             <div

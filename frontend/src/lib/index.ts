@@ -1,8 +1,11 @@
 // place files you want to import through the `$lib` alias in this folder.
 
-export interface Card {
+export interface ServerCard {
     id: number;
     content: string;
+}
+
+export interface Card extends ServerCard {
     color: string;
     borderColor: string;
     textColor: string;

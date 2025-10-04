@@ -100,7 +100,7 @@
 <div class="flex flex-row gap-8 w-full h-screen p-8 text-surface-200">
     <!-- Available Cards Palette (Left Side) -->
     <div
-        class="w-1/4 flex-shrink-0 p-6 bg-surface-900 rounded-xl shadow-lg flex flex-col"
+        class="w-1/4 flex-shrink-0 p-6 bg-surface-900 card shadow-lg flex flex-col"
         ondragover={(e) => e.preventDefault()}
         ondrop={handlePaletteDrop}
     >
@@ -111,15 +111,7 @@
             {#each allCards as card, i}
                 {@const isOnGrid = gridCells.some((cell) => cell?.id === card.id)}
 
-                {#if isOnGrid}
-                    <!-- Placeholder for cards on the grid -->
-                    <div
-                        class="p-4 rounded-lg min-h-[90px] w-[calc(50%-0.5rem)] flex items-center justify-center text-center border-2 border-dashed {card.borderColor}"
-                    >
-                        <span class="font-medium opacity-75 {card.textColor}">{card.content}</span>
-                    </div>
-                {:else}
-                    <!-- The actual draggable card -->
+                {#if !isOnGrid}
                     {@const isDragging = draggedItemInfo.item?.id === card.id}
                     <div
                         class="p-4 rounded-lg font-medium cursor-grab text-surface-50 text-center transition-all duration-200 select-none w-[calc(50%-0.5rem)] min-h-[90px] flex items-center justify-center {card.color} {isDragging
@@ -140,6 +132,17 @@
         </div>
     </div>
 
-    <!-- Drop Grid (Right Side) - Now a separate component -->
-    <Grid bind:gridCells bind:draggedItemInfo bind:dragOverIndex />
+    <div class="flex flex-col w-full gap-4">
+        <!-- Drop Grid (Right Side) - Now a separate component -->
+        <Grid bind:gridCells bind:draggedItemInfo bind:dragOverIndex />
+        <div class="flex justify-end items-center gap-4">
+            <span class="text-xs">
+                <b>Note:</b>
+                once locked in, you CANNOT go back
+            </span>
+            <button class="btn preset-filled-primary-500" disabled={!allCardsPlaced}>
+                Lock in
+            </button>
+        </div>
+    </div>
 </div>
