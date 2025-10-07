@@ -3,59 +3,24 @@
 pub mod model;
 pub mod request;
 pub mod response;
-pub mod socket_event;
+pub mod socket;
 
 use axum::{
     Extension,
-    Json,
     Router,
-    debug_handler,
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::post,
 };
-use axum_extra::extract::{
-    CookieJar,
-    cookie::Cookie,
+use socketioxide::{
+    SocketIo,
+    extract::SocketRef,
 };
-use socketioxide::SocketIo;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tracing::info;
-use uuid::Uuid;
 
 use crate::{
-    model::{
-        Card,
-        GameManager,
-        Host,
-    },
-    request::CreateLobbyRequest,
+    model::GameManager,
+    socket::event::on_connect,
 };
-
-#[debug_handler]
-async fn create_lobby(
-    jar: CookieJar,
-    manager: State<GameManager>,
-    Json(req): Json<CreateLobbyRequest>,
-) -> impl IntoResponse {
-    let lobby_id = Uuid::new_v4();
-    let host_id = Uuid::new_v4();
-
-    let host = Host::new(host_id, req.host_name);
-
-    let cards = req.cards.map(Card::new);
-
-    manager.create_lobby(lobby_id, host.clone(), cards).await;
-
-    (
-        StatusCode::CREATED,
-        jar.add(Cookie::new("lobbyId", lobby_id.to_string()))
-            .add(Cookie::new("playerId", host_id.to_string())),
-        Json(host),
-    )
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -64,16 +29,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let game_manager = GameManager::new();
 
-    let (layer, io) = SocketIo::new_layer();
+    let (layer, io) = SocketIo::builder()
+        .with_state(game_manager.clone())
+        .build_layer();
 
-    // io.ns("/ws", |socket: SocketRef| {});
+    io.ns("/ws", on_connect);
 
     // Create the Axum application
     let app = Router::new()
-        .nest(
-            "/api",
-            Router::new().nest("/lobby", Router::new().route("/", post(create_lobby))),
-        )
         .with_state(game_manager)
         .layer(
             ServiceBuilder::new()
