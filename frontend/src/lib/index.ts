@@ -1,6 +1,7 @@
 // place files you want to import through the `$lib` alias in this folder.
 
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
+import type { ClientToServerEvents, ServerToClientEvents } from './socket_event';
 
 export interface ServerCard {
     id: number;
@@ -43,4 +44,6 @@ export const COLOR_THEMES = [
     { color: 'bg-error-700/70', borderColor: 'border-error-400', textColor: 'text-error-400' },
 ];
 
-export const socket = io('http://localhost:3000/ws');
+export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+    'http://localhost:3000/ws'
+);

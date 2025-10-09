@@ -33,16 +33,6 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
-struct AuthError;
-
-impl std::fmt::Display for AuthError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "AuthError")
-    }
-}
-impl std::error::Error for AuthError {}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum ClientEvent {
     HostLobby,
@@ -59,14 +49,12 @@ impl From<ClientEvent> for Cow<'static, str> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum ServerEvent {
-    NameAlreadyTaken,
-}
+enum ServerEvent {}
 
 impl AsRef<str> for ServerEvent {
     fn as_ref(&self) -> &str {
         match self {
-            ServerEvent::NameAlreadyTaken => "nameAlreadyTaken",
+            _ => unreachable!(),
         }
     }
 }
@@ -132,7 +120,7 @@ async fn host_lobby(
 
     socket.join(lobby_id.to_string());
 
-    match ack.send(&host) {
+    match ack.send(&lobby_id) {
         Ok(_) => info!("Successfully hosted lobby {}", lobby_id),
         Err(err) => {
             error!("Failed to host lobby {}: {}", lobby_id, err);

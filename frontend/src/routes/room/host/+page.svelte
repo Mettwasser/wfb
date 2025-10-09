@@ -1,7 +1,7 @@
 <script lang="ts">
     import { socket } from '$lib';
     import Tooltip from '$lib/components/Tooltip.svelte';
-    import { ClientEvent, type HostLobbyRequest } from '$lib/socket_event';
+    import { type HostLobbyRequest } from '$lib/socket_event';
     import { FolderInput, FolderOutput } from '@lucide/svelte';
 
     let importInput: HTMLInputElement;
@@ -71,12 +71,10 @@
     }
 
     async function createLobby() {
-        let request: HostLobbyRequest = {
+        let response = await socket.emitWithAck('hostLobby', {
             hostName: username.trim(),
             cards: cards.map((card) => card.trim()),
-        };
-
-        let response = await socket.emitWithAck(ClientEvent.HostLobby, request);
+        });
     }
 </script>
 

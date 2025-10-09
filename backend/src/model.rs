@@ -85,6 +85,7 @@ pub struct Game {
     pub correct_answers: Vec<CardId>,
     pub start_date: DateTime<Utc>,
     pub state: GameState,
+    pub boards: HashMap<Sid, Board>,
 }
 
 impl Game {
@@ -96,6 +97,7 @@ impl Game {
             correct_answers: Vec::new(),
             start_date: Utc::now(),
             state: GameState::WaitingForPlayers,
+            boards: HashMap::new(),
         }
     }
 }
@@ -118,22 +120,14 @@ impl Host {
 pub struct Player {
     pub id: Sid,
     pub name: String,
-    pub board: Board,
 }
 
 impl Player {
     pub fn new(id: Sid, name: String) -> Self {
-        Self {
-            id,
-            name,
-            board: Board([
-                None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-                None, None, None, None, None, None, None, None, None, None, None,
-            ]),
-        }
+        Self { id, name }
     }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
-pub struct Board(pub [Option<Card>; 25]);
+pub struct Board(pub [Card; 25]);
