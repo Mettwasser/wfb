@@ -21,10 +21,6 @@ pub type LobbyId = Uuid;
 #[serde(rename_all = "camelCase")]
 pub struct CardId(pub Uuid);
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
-#[serde(rename_all = "camelCase")]
-pub struct PlayerId(pub Uuid);
-
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct Card {
@@ -57,6 +53,16 @@ impl GameManager {
         let mut lock = self.lobbies.lock().await;
         lock.insert(lobby_id, Game::new(host, cards));
     }
+
+    pub async fn get_lobby(&self, lobby_id: &LobbyId) -> Option<Game> {
+        let lock = self.lobbies.lock().await;
+        lock.get(lobby_id).cloned()
+    }
+
+    pub async fn remove_lobby(&self, lobby_id: &LobbyId) -> Option<Game> {
+        let mut lock = self.lobbies.lock().await;
+        lock.remove(lobby_id)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -68,7 +74,7 @@ pub enum GameState {
     InProgress,
 
     /// The game has ended
-    Completed { winners: Vec<PlayerId> },
+    Completed { winners: Vec<String> },
 }
 
 #[derive(Debug, Clone)]

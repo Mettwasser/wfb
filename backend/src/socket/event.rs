@@ -2,12 +2,17 @@ use std::borrow::Cow;
 
 use socketioxide::{
     SocketIo,
+    adapter::LocalAdapter,
     extract::{
+        AckSender,
         Data,
         SocketRef,
         State,
     },
-    handler::Value,
+    handler::{
+        MessageHandler,
+        Value,
+    },
 };
 use tracing::{
     error,
@@ -71,6 +76,7 @@ pub fn on_connect(socket: SocketRef) {
     info!("Socket connected: {}", socket.id);
 
     socket.on(ClientEvent::HostLobby, host_lobby);
+    socket.on(ClientEvent::JoinLobby, join_lobby);
 
     socket.on_disconnect(on_disconnect);
 }
@@ -104,11 +110,12 @@ async fn on_disconnect(socket: SocketRef, io: SocketIo, State(manager): State<Ga
     }
 }
 
-#[instrument(name = "lobby.host")]
+#[instrument(name = "lobby.host", skip(ack))]
 async fn host_lobby(
     socket: SocketRef,
     Data(request): Data<HostLobbyRequest>,
     State(manager): State<GameManager>,
+    ack: AckSender,
 ) {
     info!(
         ?request,
@@ -123,14 +130,23 @@ async fn host_lobby(
 
     manager.create_lobby(lobby_id, host.clone(), cards).await;
 
-    let _ = socket.join(lobby_id.to_string());
+    socket.join(lobby_id.to_string());
+
+    match ack.send(&host) {
+        Ok(_) => info!("Successfully hosted lobby {}", lobby_id),
+        Err(err) => {
+            error!("Failed to host lobby {}: {}", lobby_id, err);
+            manager.remove_lobby(&lobby_id).await;
+        }
+    }
 }
 
-#[instrument(name = "lobby.join")]
+#[instrument(name = "lobby.join", skip(ack))]
 async fn join_lobby(
     socket: SocketRef,
     Data(request): Data<JoinLobbyRequest>,
     State(state): State<GameManager>,
+    ack: AckSender,
 ) {
     info!(
         "Socket {} is attempting to join lobby {}",

@@ -1,11 +1,13 @@
 <script lang="ts">
+    import { socket } from '$lib';
     import Tooltip from '$lib/components/Tooltip.svelte';
+    import { ClientEvent, type HostLobbyRequest } from '$lib/socket_event';
     import { FolderInput, FolderOutput } from '@lucide/svelte';
 
     let importInput: HTMLInputElement;
 
     let username = $state('');
-    let cards = $state<string[]>(['', '', '']);
+    let cards = $state(['', '', '']);
 
     let isValid = $derived(
         username.trim() !== '' && cards.length === 25 && cards.every((card) => card.trim() !== '')
@@ -67,7 +69,74 @@
         // 5. Clean up by revoking the object URL
         URL.revokeObjectURL(url);
     }
+
+    async function createLobby() {
+        let request: HostLobbyRequest = {
+            hostName: username.trim(),
+            cards: cards.map((card) => card.trim()),
+        };
+
+        let response = await socket.emitWithAck(ClientEvent.HostLobby, request);
+    }
 </script>
+
+{#snippet importExportButtons()}
+    <div>
+        <Tooltip text="Export">
+            <button class="btn preset-filled-secondary-300-700" onclick={handleExport}>
+                <FolderOutput class="size-6" />
+            </button>
+        </Tooltip>
+        <Tooltip text="Import">
+            <button class="btn preset-filled-primary-300-700" onclick={() => importInput.click()}>
+                <FolderInput class="size-6" />
+            </button>
+        </Tooltip>
+    </div>
+{/snippet}
+
+{#snippet cardCreationGrid()}
+    <div
+        class="grid gap-y-2 grid-cols-2 gap-x-8"
+        onkeydown={(e) => {
+            if (e.key === 'Enter' && cards.length < 25) {
+                addCard();
+                // Wait for the DOM to update
+                setTimeout(() => {
+                    const inputs: NodeListOf<HTMLInputElement> =
+                        document.querySelectorAll('input[data-card-grid]');
+                    inputs[inputs.length - 1]?.focus();
+                }, 0);
+            } else if ((e.altKey || e.ctrlKey) && (e.key == 'Delete' || e.key == 'Backspace')) {
+                removeCard(cards.length - 1);
+                setTimeout(() => {
+                    const inputs: NodeListOf<HTMLInputElement> =
+                        document.querySelectorAll('input[data-card-grid]');
+                    inputs[inputs.length - 1]?.focus();
+                }, 0);
+            }
+        }}
+    >
+        {#each cards as card, i}
+            <div class="flex gap-2">
+                <input
+                    data-card-grid
+                    type="text"
+                    placeholder="Enter card text"
+                    class="input flex-1"
+                    bind:value={cards[i]}
+                />
+                <button
+                    class="btn preset-filled-error-300-700"
+                    onclick={() => removeCard(i)}
+                    tabindex="-1"
+                >
+                    Remove
+                </button>
+            </div>
+        {/each}
+    </div>
+{/snippet}
 
 <div class="flex justify-center items-center min-h-full">
     <div class="flex flex-col gap-12 w-1/2 p-4">
@@ -93,66 +162,10 @@
 
                 <input type="file" class="hidden" bind:this={importInput} onchange={handleImport} />
 
-                <div>
-                    <Tooltip text="Export">
-                        <button class="btn preset-filled-secondary-300-700" onclick={handleExport}>
-                            <FolderOutput class="size-6" />
-                        </button>
-                    </Tooltip>
-                    <Tooltip text="Import">
-                        <button
-                            class="btn preset-filled-primary-300-700"
-                            onclick={() => importInput.click()}
-                        >
-                            <FolderInput class="size-6" />
-                        </button>
-                    </Tooltip>
-                </div>
+                {@render importExportButtons()}
             </div>
 
-            <div
-                class="grid gap-y-2 grid-cols-2 gap-x-8"
-                onkeydown={(e) => {
-                    if (e.key === 'Enter' && cards.length < 25) {
-                        addCard();
-                        // Wait for the DOM to update
-                        setTimeout(() => {
-                            const inputs: NodeListOf<HTMLInputElement> =
-                                document.querySelectorAll('input[data-card-grid]');
-                            inputs[inputs.length - 1]?.focus();
-                        }, 0);
-                    } else if (
-                        (e.altKey || e.ctrlKey) &&
-                        (e.key == 'Delete' || e.key == 'Backspace')
-                    ) {
-                        removeCard(cards.length - 1);
-                        setTimeout(() => {
-                            const inputs: NodeListOf<HTMLInputElement> =
-                                document.querySelectorAll('input[data-card-grid]');
-                            inputs[inputs.length - 1]?.focus();
-                        }, 0);
-                    }
-                }}
-            >
-                {#each cards as card, i}
-                    <div class="flex gap-2">
-                        <input
-                            data-card-grid
-                            type="text"
-                            placeholder="Enter card text"
-                            class="input flex-1"
-                            bind:value={cards[i]}
-                        />
-                        <button
-                            class="btn preset-filled-error-300-700"
-                            onclick={() => removeCard(i)}
-                            tabindex="-1"
-                        >
-                            Remove
-                        </button>
-                    </div>
-                {/each}
-            </div>
+            {@render cardCreationGrid()}
 
             {#if cards.length < 25}
                 <button class="btn preset-filled-primary-300-700" onclick={addCard}>
@@ -163,7 +176,11 @@
 
         <!-- Continue button -->
         <div class="flex flex-col justify-end items-end gap-4">
-            <button class="btn preset-filled-success-300-700 w-full" disabled={!isValid}>
+            <button
+                class="btn preset-filled-success-300-700 w-full"
+                disabled={!isValid}
+                onclick={createLobby}
+            >
                 Continue
             </button>
 

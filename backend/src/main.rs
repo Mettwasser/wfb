@@ -9,10 +9,7 @@ use axum::{
     Extension,
     Router,
 };
-use socketioxide::{
-    SocketIo,
-    extract::SocketRef,
-};
+use socketioxide::SocketIo;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tracing::info;
