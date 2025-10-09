@@ -4,7 +4,7 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize)]
 pub struct JoinLobbyRequest {
     pub player_name: String,
-    pub lobby_id: Uuid,
+    pub lobby_id: String,
 }
 
 #[derive(Debug, Deserialize)]
