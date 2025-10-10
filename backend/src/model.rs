@@ -81,7 +81,7 @@ mod char_vec_as_string {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct LobbyId(pub [char; ID_LENGTH]);
+pub struct LobbyId(#[serde(with = "char_vec_as_string")] pub [char; ID_LENGTH]);
 
 impl LobbyId {
     pub fn new() -> Self {
