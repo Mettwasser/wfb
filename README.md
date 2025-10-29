@@ -33,7 +33,7 @@ The host can then choose cards based on in-game events. First player to get 5 ca
 ## Prerequisites
 
 - rust (cargo)
-- npm
+- nodejs (npm)
 
 ## Backend
 
