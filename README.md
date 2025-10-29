@@ -21,8 +21,6 @@ The host can then choose cards based on in-game events. First player to get 5 ca
 
 # Tech Stack
 
-### Socket.IO
-
 | Comment   | Backend        | Frontend                    |
 | --------- | -------------- | --------------------------- |
 | Socket.IO | [socketioxide] | [socket.io-client]          |
