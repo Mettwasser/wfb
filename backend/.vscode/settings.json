@@ -1,6 +1,13 @@
 {
     "cSpell.words": [
-        "socketioxide"
+        "acks",
+        "chrono",
+        "identconv",
+        "monostate",
+        "repr",
+        "socketioxide",
+        "strify",
+        "thiserror"
     ]
 
 }

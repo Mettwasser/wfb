@@ -15,11 +15,16 @@ use chrono::{
 use rand::Rng;
 use serde::{
     Deserialize,
+    Deserializer,
     Serialize,
+    de,
+};
+use serde_repr::{
+    Deserialize_repr,
+    Serialize_repr,
 };
 use socketioxide::socket::Sid;
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
 // A character set for a base62 encoding.
 const CHARSET: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -39,49 +44,8 @@ fn generate_short_id() -> [char; ID_LENGTH] {
         .unwrap_or_else(|_| panic!("Failed to convert Vec<char> to array"))
 }
 
-mod char_vec_as_string {
-    use serde::{
-        Deserializer,
-        Serializer,
-        de,
-    };
-
-    use super::*;
-
-    pub fn serialize<S>(chars: &[char; ID_LENGTH], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // Collect the Vec<char> into a String and serialize the string
-        let s: String = String::from_iter(chars);
-        serializer.serialize_str(&s)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<[char; ID_LENGTH], D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-
-        // Ensure the string has the correct length for our fixed-size array
-        if s.chars().count() != ID_LENGTH {
-            let expected = ID_LENGTH.to_string();
-            return Err(de::Error::invalid_length(
-                s.chars().count(),
-                &expected.as_str(),
-            ));
-        }
-
-        let mut array = ['\0'; ID_LENGTH]; // Initialize with a placeholder
-        for (i, c) in s.chars().enumerate() {
-            array[i] = c;
-        }
-        Ok(array)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct LobbyId(#[serde(with = "char_vec_as_string")] pub [char; ID_LENGTH]);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LobbyId(pub [char; ID_LENGTH]);
 
 impl LobbyId {
     pub fn new() -> Self {
@@ -116,9 +80,29 @@ impl Display for LobbyId {
     }
 }
 
+impl<'de> Deserialize<'de> for LobbyId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
+    }
+}
+
+impl Serialize for LobbyId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let s: String = String::from_iter(self.0);
+        serializer.serialize_str(&s)
+    }
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
-pub struct CardId(pub Uuid);
+pub struct CardId(pub u8);
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
@@ -128,20 +112,20 @@ pub struct Card {
 }
 
 impl Card {
-    pub fn new(description: String) -> Self {
+    pub fn new(description: String, idx: u8) -> Self {
         Self {
             description,
-            id: CardId(Uuid::new_v4()),
+            id: CardId(idx),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct GameManager {
-    pub lobbies: Arc<Mutex<HashMap<LobbyId, Game>>>,
+pub struct LobbyManager {
+    pub lobbies: Arc<Mutex<HashMap<LobbyId, Lobby>>>,
 }
 
-impl GameManager {
+impl LobbyManager {
     pub fn new() -> Self {
         Self {
             lobbies: Arc::new(Mutex::new(HashMap::new())),
@@ -150,48 +134,59 @@ impl GameManager {
 
     pub async fn create_lobby(&self, lobby_id: LobbyId, host: Host, cards: [Card; 25]) {
         let mut lock = self.lobbies.lock().await;
-        lock.insert(lobby_id, Game::new(host, cards));
+        lock.insert(lobby_id, Lobby::new(host, cards));
     }
 
-    pub async fn get_lobby(&self, lobby_id: &LobbyId) -> Option<Game> {
-        let lock = self.lobbies.lock().await;
-        lock.get(lobby_id).cloned()
-    }
-
-    pub async fn remove_lobby(&self, lobby_id: &LobbyId) -> Option<Game> {
+    pub async fn remove_lobby(&self, lobby_id: &LobbyId) -> Option<Lobby> {
         let mut lock = self.lobbies.lock().await;
         lock.remove(lobby_id)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum GameState {
-    /// The game is waiting for players to join - started by the host
+#[derive(Debug, thiserror::Error)]
+#[error("The lobby has already reached the last stage.")]
+pub struct LastStateReached;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
+pub enum LobbyState {
+    /// The lobby is waiting for players to join - started by the host
     WaitingForPlayers,
 
     CraftingBoards,
 
-    /// The game is currently in progress. No more players can join
+    /// The lobby is currently in progress. No more players can join
     InProgress,
 
-    /// The game has ended
-    Completed {
-        winners: Vec<String>,
-    },
+    /// The lobby has ended
+    Completed,
+}
+
+impl LobbyState {
+    pub fn next_stage(self) -> Option<Self> {
+        let state = match self {
+            LobbyState::WaitingForPlayers => LobbyState::CraftingBoards,
+            LobbyState::CraftingBoards => LobbyState::InProgress,
+            LobbyState::InProgress => LobbyState::Completed,
+            LobbyState::Completed => return None,
+        };
+
+        Some(state)
+    }
 }
 
 #[derive(Debug, Clone)]
-pub struct Game {
+pub struct Lobby {
     pub host: Host,
     pub available_cards: [Card; 25],
     pub players: Vec<Player>,
     pub correct_answers: Vec<CardId>,
     pub start_date: DateTime<Utc>,
-    pub state: GameState,
+    pub state: LobbyState,
     pub boards: HashMap<Sid, Board>,
 }
 
-impl Game {
+impl Lobby {
     pub fn new(host: Host, available_cards: [Card; 25]) -> Self {
         Self {
             host,
@@ -199,9 +194,18 @@ impl Game {
             players: Vec::new(),
             correct_answers: Vec::new(),
             start_date: Utc::now(),
-            state: GameState::WaitingForPlayers,
+            state: LobbyState::WaitingForPlayers,
             boards: HashMap::new(),
         }
+    }
+
+    pub fn is_host(&self, socket_id: Sid) -> bool {
+        self.host.id == socket_id
+    }
+
+    pub fn advance_state(&mut self) -> Result<LobbyState, LastStateReached> {
+        self.state = self.state.next_stage().ok_or(LastStateReached)?;
+        Ok(self.state)
     }
 }
 

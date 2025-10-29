@@ -1,15 +1,17 @@
 <script lang="ts">
     import type { Card, DraggedItemInfo } from '$lib';
 
-    let {
-        gridCells = $bindable(),
-        draggedItemInfo = $bindable(),
-        dragOverIndex = $bindable()
-    } = $props<{
+    interface Props {
         gridCells: (Card | null)[];
         draggedItemInfo: DraggedItemInfo;
         dragOverIndex: number;
-    }>();
+    }
+
+    let {
+        gridCells = $bindable(),
+        draggedItemInfo = $bindable(),
+        dragOverIndex = $bindable(),
+    }: Props = $props();
 
     function handleDragStart(event: DragEvent, item: Card, source: 'grid', index: number) {
         const target = event.currentTarget as HTMLElement;
@@ -72,11 +74,11 @@
     }
 </script>
 
-<div class="flex-1 flex p-6 bg-surface-900 card">
-    <div class="grid grid-cols-5 grid-rows-5 gap-4 w-full h-full">
+<div class="bg-surface-900 card flex flex-1 p-6">
+    <div class="grid h-full w-full grid-cols-5 grid-rows-5 gap-4">
         {#each gridCells as cell, i}
             <div
-                class="bg-surface-800/50 border-2 border-dashed border-surface-700 rounded-lg flex justify-center items-center transition-colors {dragOverIndex ===
+                class="bg-surface-800/50 border-surface-700 flex items-center justify-center rounded-lg border-2 border-dashed transition-colors {dragOverIndex ===
                 i
                     ? 'bg-surface-800 border-blue-500'
                     : ''}"
@@ -87,7 +89,7 @@
                 {#if cell}
                     {@const isDragging = draggedItemInfo.item?.id === cell.id}
                     <div
-                        class="p-4 rounded-lg font-medium cursor-grab text-white text-center transition-all duration-200 select-none w-full h-full flex items-center justify-center {cell.color} {isDragging
+                        class="flex h-full w-full cursor-grab items-center justify-center rounded-lg p-4 text-center font-medium text-white transition-all duration-200 select-none {cell.color} {isDragging
                             ? 'opacity-40'
                             : ''}"
                         draggable="true"
@@ -95,7 +97,7 @@
                         ondragend={handleDragEnd}
                         oncontextmenu={(e) => handleReturnCard(e as MouseEvent, cell.id)}
                     >
-                        <span class="pointer-events-none">{cell.content}</span>
+                        <span class="pointer-events-none">{cell.description}</span>
                     </div>
                 {/if}
             </div>

@@ -15,8 +15,8 @@ use tower_http::cors::CorsLayer;
 use tracing::info;
 
 use crate::{
-    model::GameManager,
-    socket::event::on_connect,
+    model::LobbyManager,
+    socket::on_connect,
 };
 
 #[tokio::main]
@@ -24,17 +24,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Set up logging
     tracing_subscriber::fmt::init();
 
-    let game_manager = GameManager::new();
+    let lobby_manager = LobbyManager::new();
 
     let (layer, io) = SocketIo::builder()
-        .with_state(game_manager.clone())
+        .with_state(lobby_manager.clone())
         .build_layer();
 
-    io.ns("/ws", on_connect);
+    io.ns("/", on_connect);
 
     // Create the Axum application
     let app = Router::new()
-        .with_state(game_manager)
+        .with_state(lobby_manager)
         .layer(
             ServiceBuilder::new()
                 .layer(CorsLayer::very_permissive()) // Allow all origins for development

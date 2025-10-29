@@ -1,50 +1,12 @@
 <script lang="ts">
     import { COLOR_THEMES, type Card, type DraggedItemInfo } from '$lib';
     import Grid from '$lib/components/Grid.svelte';
-    import type { PageData } from './$types';
-
-    let { params }: PageData = $props();
-
-    // 2. Provide the card content as a simple array of strings.
-    const initialCardData = [
-        'View detailed analytics and performance metrics',
-        'Configure user permissions and account settings',
-        'Return to the main project dashboard overview',
-        'Check your team-wide messages and notifications',
-        'Open the shared team event and meeting calendar',
-        'Review the latest audit and security logs',
-        'Access the customer support ticket queue',
-        'Manage billing and subscription information',
-        'Generate and export financial reports',
-        'Integrate with third-party applications',
-        'Customize the user interface and themes',
-        'Manage API keys and developer access',
-        'View real-time system status and uptime',
-        'Create and manage automated workflows',
-        'Set up data backup and recovery options',
-        'Explore the knowledge base and documentation',
-        'Track project milestones and deadlines',
-        'Collaborate on documents with team members',
-        'Analyze user engagement and activity',
-        'Configure two-factor authentication (2FA)',
-        'Manage data import and export tasks',
-        'Access developer tools and sandbox environment',
-        'View and manage asset library',
-        'Configure notification preferences',
-        'Submit a feature request or feedback'
-    ];
+    import { session } from '$lib/session.svelte';
 
     // --- STATE ---
 
     // The full card objects are now generated dynamically.
-    const allCards: Card[] = initialCardData.map((content, index) => {
-        const theme = COLOR_THEMES[index % COLOR_THEMES.length];
-        return {
-            id: index + 1, // Generate a simple ID
-            content,
-            ...theme
-        };
-    });
+    const allCards: Card[] = session.info!.cards;
 
     // The grid cells, 5x5 (25 cells)
     let gridCells: (Card | null)[] = $state(Array(25).fill(null));
@@ -53,7 +15,7 @@
     let draggedItemInfo: DraggedItemInfo = $state({
         item: null,
         source: null,
-        sourceIndex: -1
+        sourceIndex: -1,
     });
 
     // This holds the index of the grid cell the cursor is currently over.
@@ -97,15 +59,15 @@
 </script>
 
 <!-- TEMPLATE -->
-<div class="flex flex-row gap-8 w-full h-screen p-8 text-surface-200">
+<div class="text-surface-200 flex h-screen w-full flex-row gap-8 p-8">
     <!-- Available Cards Palette (Left Side) -->
     <div
-        class="w-1/4 flex-shrink-0 p-6 bg-surface-900 card shadow-lg flex flex-col"
+        class="bg-surface-900 card flex w-1/4 flex-shrink-0 flex-col p-6 shadow-lg"
         ondragover={(e) => e.preventDefault()}
         ondrop={handlePaletteDrop}
     >
-        <h2 class="text-xl font-bold border-b border-surface-700 pb-3 mb-4 flex-shrink-0">
-            Room {params.roomId}
+        <h2 class="border-surface-700 mb-4 flex-shrink-0 border-b pb-3 text-xl font-bold">
+            Room {session.info!.lobbyId}
         </h2>
         <div class="flex flex-row flex-wrap gap-4 overflow-y-auto overscroll-contain pr-2">
             {#each allCards as card, i}
@@ -114,28 +76,28 @@
                 {#if !isOnGrid}
                     {@const isDragging = draggedItemInfo.item?.id === card.id}
                     <div
-                        class="p-4 rounded-lg font-medium cursor-grab text-surface-50 text-center transition-all duration-200 select-none w-[calc(50%-0.5rem)] min-h-[90px] flex items-center justify-center {card.color} {isDragging
-                            ? 'opacity-40 scale-105'
+                        class="text-surface-50 flex min-h-[90px] w-[calc(50%-0.5rem)] cursor-grab items-center justify-center rounded-lg p-4 text-center font-medium transition-all duration-200 select-none {card.color} {isDragging
+                            ? 'scale-105 opacity-40'
                             : ''}"
                         draggable="true"
                         ondragstart={(e) => handleDragStart(e as DragEvent, card, 'palette', i)}
                         ondragend={handleDragEnd}
                     >
-                        <span class="pointer-events-none">{card.content}</span>
+                        <span class="pointer-events-none">{card.description}</span>
                     </div>
                 {/if}
             {/each}
 
             {#if allCardsPlaced}
-                <p class="text-surface-400 text-center py-4 w-full">All cards are on the grid!</p>
+                <p class="text-surface-400 w-full py-4 text-center">All cards are on the grid!</p>
             {/if}
         </div>
     </div>
 
-    <div class="flex flex-col w-full gap-4">
+    <div class="flex w-full flex-col gap-4">
         <!-- Drop Grid (Right Side) - Now a separate component -->
         <Grid bind:gridCells bind:draggedItemInfo bind:dragOverIndex />
-        <div class="flex justify-end items-center gap-4">
+        <div class="flex items-center justify-end gap-4">
             <span class="text-xs">
                 <b>Note:</b>
                 once locked in, you CANNOT go back

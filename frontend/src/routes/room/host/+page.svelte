@@ -1,7 +1,9 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import { socket } from '$lib';
     import Tooltip from '$lib/components/Tooltip.svelte';
-    import { type HostLobbyRequest } from '$lib/socket_event';
+    import { initSessionByHosting, session } from '$lib/session.svelte';
+    import { mapServerCardToCard } from '$lib/utils';
     import { FolderInput, FolderOutput } from '@lucide/svelte';
 
     let importInput: HTMLInputElement;
@@ -75,6 +77,15 @@
             hostName: username.trim(),
             cards: cards.map((card) => card.trim()),
         });
+
+        if (response.success) {
+            initSessionByHosting(
+                response.data.lobbyId,
+                username,
+                mapServerCardToCard(response.data.cards)
+            );
+            goto(`/room/wait`);
+        }
     }
 </script>
 
@@ -149,6 +160,7 @@
                 type="text"
                 placeholder="Enter your username"
                 class="input"
+                autocomplete="off"
                 bind:value={username}
             />
         </label>

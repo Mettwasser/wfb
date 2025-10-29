@@ -5,3 +5,4 @@ imports_layout = "Vertical"
 wrap_comments = true
 group_imports = "StdExternalCrate"
 use_field_init_shorthand = true
+format_macro_matchers = true
