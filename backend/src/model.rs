@@ -100,14 +100,10 @@ impl Serialize for LobbyId {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
-#[serde(rename_all = "camelCase")]
-pub struct CardId(pub u8);
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(rename_all = "camelCase")]
 pub struct Card {
-    id: CardId,
+    id: u8,
     description: String,
 }
 
@@ -115,7 +111,7 @@ impl Card {
     pub fn new(description: String, idx: u8) -> Self {
         Self {
             description,
-            id: CardId(idx),
+            id: idx,
         }
     }
 }
@@ -153,9 +149,10 @@ pub enum LobbyState {
     /// The lobby is waiting for players to join - started by the host
     WaitingForPlayers,
 
+    /// Players. No more players can join
     CraftingBoards,
 
-    /// The lobby is currently in progress. No more players can join
+    /// The lobby is currently in progress.
     InProgress,
 
     /// The lobby has ended
@@ -180,10 +177,12 @@ pub struct Lobby {
     pub host: Host,
     pub available_cards: [Card; 25],
     pub players: Vec<Player>,
-    pub correct_answers: Vec<CardId>,
     pub start_date: DateTime<Utc>,
     pub state: LobbyState,
-    pub boards: HashMap<Sid, Board>,
+
+    // We only save the card ids. They are enough for checking the winner.
+    pub correct_answers: Vec<u8>,
+    pub boards: HashMap<Sid, [u8; 25]>,
 }
 
 impl Lobby {
@@ -234,7 +233,3 @@ impl Player {
         Self { id, name }
     }
 }
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
-#[serde(rename_all = "camelCase")]
-pub struct Board(pub [Card; 25]);

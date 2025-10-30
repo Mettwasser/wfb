@@ -1,6 +1,6 @@
 // --- REQUEST PAYLOADS (Client -> Server) ---
 
-import type { LobbyState, ServerCard } from '$lib';
+import type { Card, LobbyState, ServerCard } from '$lib';
 
 type Acknowledgement<T> =
     | {
@@ -19,6 +19,11 @@ export interface JoinLobbyRequest {
     playerName: string;
 }
 
+export interface SubmitBoardRequest {
+    lobbyId: string;
+    cards: number[];
+}
+
 // --- ACKNOWLEDGMENT PAYLOADS (Server -> Client) ---
 
 export type HostLobbyAck = Acknowledgement<{
@@ -34,6 +39,8 @@ export type JoinLobbyAck = Acknowledgement<{
 
 export type NextStageAck = Acknowledgement<string>;
 
+export type EmptyAck = Acknowledgement<null>;
+
 export interface ClientToServerEvents {
     // Event: 'hostLobby'
     // Arguments: [HostLobbyRequest, (ack: HostLobbyAck) => void]
@@ -44,6 +51,8 @@ export interface ClientToServerEvents {
     joinLobby: (data: JoinLobbyRequest, callback: (ack: JoinLobbyAck) => void) => void;
 
     triggerNextStage: (data: string) => void;
+
+    submitBoard: (data: SubmitBoardRequest, callback: (ack: EmptyAck) => void) => void;
 }
 
 export interface ServerToClientEvents {
@@ -55,4 +64,6 @@ export interface ServerToClientEvents {
     lobbyClosed: () => void;
 
     nextStage: (state: LobbyState) => void;
+
+    boardSubmitted: (userName: string) => void;
 }

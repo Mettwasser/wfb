@@ -26,16 +26,6 @@
             session.info!.players.push(user);
         });
 
-        socket.on('userLeft', (user) => {
-            console.log(session.info!);
-            console.log(user);
-            let idx = session.info!.players.findIndex((p) => p === user);
-            console.log(idx);
-            if (idx >= 0) {
-                session.info!.players = session.info!.players.filter((p) => p !== user);
-            }
-        });
-
         socket.on('nextStage', (_) => {
             if (session.info!.isHost) {
                 goto('/room/crafting/host');
@@ -46,7 +36,6 @@
 
         return () => {
             socket.removeListener('userJoined');
-            socket.removeListener('userLeft');
             socket.removeListener('nextStage');
         };
     });
@@ -64,11 +53,14 @@
         </div>
     </div>
     <div class="bg-surface-900 w-2/3 rounded-xl p-8 shadow-lg">
-        <div class="grid max-h-150 grid-cols-5 overflow-y-auto p-4">
+        <div class="grid max-h-150 grid-cols-5 gap-4 overflow-y-auto p-4">
             {#each session.info!.players as p (p)}
                 <div>
                     <span
-                        class="p-2 {p === session.info!.userName ? 'bg-success-300-700 card' : ''}"
+                        class="card flex justify-center gap-2 rounded-lg p-3 {p ===
+                        session.info!.userName
+                            ? 'bg-success-300-700 card'
+                            : 'preset-tonal-surface'}"
                     >
                         <SwordIcon class="text-primary-100 inline pr-2" />{p}
                     </span>

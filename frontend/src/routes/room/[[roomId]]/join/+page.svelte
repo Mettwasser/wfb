@@ -2,7 +2,7 @@
     import { goto } from '$app/navigation';
     import { LobbyState, socket } from '$lib';
     import { initSessionByJoining } from '$lib/session.svelte';
-    import { mapServerCardToCard } from '$lib/utils';
+    import { mapServerCardsToCards } from '$lib/utils';
     import type { PageData } from './$types';
     let { params }: PageData = $props();
 
@@ -22,7 +22,7 @@
         if (response.success) {
             let { host, cards, players } = response.data;
             initSessionByJoining({
-                cards: mapServerCardToCard(cards),
+                cards: mapServerCardsToCards(cards),
                 players,
                 hostName: host,
                 userName: name.trim(),

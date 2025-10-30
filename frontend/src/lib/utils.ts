@@ -1,6 +1,6 @@
 import { COLOR_THEMES, type Card, type ServerCard } from '$lib';
 
-export function mapServerCardToCard(serverCards: ServerCard[]): Card[] {
+export function mapServerCardsToCards(serverCards: ServerCard[]): Card[] {
     return serverCards.map((card, index) => {
         const theme = COLOR_THEMES[index % COLOR_THEMES.length];
         return {
@@ -9,3 +9,5 @@ export function mapServerCardToCard(serverCards: ServerCard[]): Card[] {
         };
     });
 }
+
+export const getCardIds = (cards: ServerCard[]) => cards.map((card) => card.id);

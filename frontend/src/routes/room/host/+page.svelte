@@ -3,7 +3,7 @@
     import { socket } from '$lib';
     import Tooltip from '$lib/components/Tooltip.svelte';
     import { initSessionByHosting, session } from '$lib/session.svelte';
-    import { mapServerCardToCard } from '$lib/utils';
+    import { mapServerCardsToCards } from '$lib/utils';
     import { FolderInput, FolderOutput } from '@lucide/svelte';
 
     let importInput: HTMLInputElement;
@@ -82,7 +82,7 @@
             initSessionByHosting(
                 response.data.lobbyId,
                 username,
-                mapServerCardToCard(response.data.cards)
+                mapServerCardsToCards(response.data.cards)
             );
             goto(`/room/wait`);
         }
@@ -106,7 +106,7 @@
 
 {#snippet cardCreationGrid()}
     <div
-        class="grid gap-y-2 grid-cols-2 gap-x-8"
+        class="grid grid-cols-2 gap-x-8 gap-y-2"
         onkeydown={(e) => {
             if (e.key === 'Enter' && cards.length < 25) {
                 addCard();
@@ -147,8 +147,8 @@
     </div>
 {/snippet}
 
-<div class="flex justify-center items-center min-h-full">
-    <div class="flex flex-col gap-12 w-1/2 p-4">
+<div class="flex min-h-full items-center justify-center">
+    <div class="flex w-1/2 flex-col gap-12 p-4">
         <div class="flex justify-center">
             <h1 class="h1">Host a lobby</h1>
         </div>
@@ -167,7 +167,7 @@
 
         <!-- Cards section -->
         <div class="space-y-4">
-            <div class="flex w-full justify-between items-end">
+            <div class="flex w-full items-end justify-between">
                 <span class="label-text">Cards ({cards.length}/25)</span>
 
                 <input type="file" class="hidden" bind:this={importInput} onchange={handleImport} />
@@ -185,7 +185,7 @@
         </div>
 
         <!-- Continue button -->
-        <div class="flex flex-col justify-end items-end gap-4">
+        <div class="flex flex-col items-end justify-end gap-4">
             <button
                 class="btn preset-filled-success-300-700 w-full"
                 disabled={!isValid}

@@ -6,13 +6,15 @@ client_events! {
     HostLobby,
     JoinLobby,
     TriggerNextStage,
+    SubmitBoard,
 }
 
 server_events! {
     UserJoined,
     UserLeft,
     LobbyClosed,
-    NextStage
+    NextStage,
+    BoardSubmitted,
 }
 
 macro_rules! client_events {

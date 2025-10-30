@@ -43,6 +43,7 @@ use crate::{
             ServerEvent,
         },
         request::{
+            BoardSubmitRequest,
             HostLobbyRequest,
             JoinLobbyRequest,
         },
@@ -88,7 +89,8 @@ pub async fn on_connect(socket: SocketRef) {
 
     socket.on(ClientEvent::HostLobby, host_lobby);
     socket.on(ClientEvent::JoinLobby, join_lobby);
-    socket.on(ClientEvent::TriggerNextStage, next_stage);
+    socket.on(ClientEvent::TriggerNextStage, trigger_next_stage);
+    socket.on(ClientEvent::SubmitBoard, submit_board);
 
     socket.on_disconnect(on_disconnect);
 }
@@ -188,20 +190,11 @@ async fn join_lobby(
         socket.id, request.lobby_id
     );
 
-    let lobby_id = match LobbyId::from_str(&request.lobby_id) {
-        Ok(lobby_id) => lobby_id,
-        Err(err) => {
-            error!("Invalid lobby ID {}: {}", request.lobby_id, err);
-            let _ = ack.send(&Acknowledgement::failure("Invalid lobby ID"));
-            return;
-        }
-    };
-
     let mut lobbies = manager.lobbies.lock().await;
 
     // Check if the lobby exists
-    let Some(lobby) = lobbies.get_mut(&lobby_id) else {
-        error!("Lobby {} does not exist", lobby_id);
+    let Some(lobby) = lobbies.get_mut(&request.lobby_id) else {
+        error!("Lobby {} does not exist", request.lobby_id);
         let _ = ack.send(&Acknowledgement::failure("Lobby does not exist"));
         return;
     };
@@ -256,8 +249,6 @@ async fn join_lobby(
     };
 
     if let Err(err) = io
-        .of("/")
-        .unwrap()
         .within(request.lobby_id.to_string())
         .emit(ServerEvent::UserJoined, &request.player_name)
         .await
@@ -266,7 +257,8 @@ async fn join_lobby(
     }
 }
 
-pub async fn next_stage(
+#[instrument(name = "lobby.next_stage", skip(socket, io, manager))]
+pub async fn trigger_next_stage(
     socket: SocketRef,
     io: SocketIo,
     Data(lobby_id): Data<LobbyId>,
@@ -290,4 +282,41 @@ pub async fn next_stage(
         .emit(ServerEvent::NextStage, &state)
         .await
         .ok();
+}
+
+#[instrument(name = "lobby.board_submitted", skip(socket, io, manager, ack))]
+pub async fn submit_board(
+    socket: SocketRef,
+    io: SocketIo,
+    Data(req): Data<BoardSubmitRequest>,
+    State(manager): State<LobbyManager>,
+    ack: AckSender,
+) {
+    let mut lobbies = manager.lobbies.lock().await;
+
+    let Some(lobby) = lobbies.get_mut(&req.lobby_id) else {
+        return;
+    };
+
+    lobby.boards.insert(socket.id, req.cards);
+
+    let player_name = lobby
+        .players
+        .iter()
+        .find(|p| p.id == socket.id)
+        .unwrap()
+        .name
+        .as_str();
+
+    match ack.send(&Acknowledgement::success(())) {
+        Ok(_) => {
+            io.within(req.lobby_id.to_string())
+                .emit(ServerEvent::BoardSubmitted, player_name)
+                .await
+                .ok();
+        }
+        Err(err) => {
+            error!("Failed to send submit board ack: {}", err);
+        }
+    };
 }

@@ -3,6 +3,7 @@
 import { io, Socket } from 'socket.io-client';
 import type { ClientToServerEvents, ServerToClientEvents } from './socket_event_types';
 import { session } from './session.svelte';
+import { createToaster } from '@skeletonlabs/skeleton-svelte';
 
 export interface ServerCard {
     id: number;
@@ -86,5 +87,15 @@ socket.on('disconnect', (reason, details) => {
     console.log(details);
 });
 
+socket.on('userLeft', (user) => {
+    let idx = session.info!.players.findIndex((p) => p === user);
+
+    if (idx >= 0) {
+        session.info!.players = session.info!.players.filter((p) => p !== user);
+    }
+});
+
 export const BACKEND_URL = 'http://localhost:3000';
 export const FRONTEND_URL = 'http://localhost:5173';
+
+export const toaster = createToaster();
