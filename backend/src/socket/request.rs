@@ -22,3 +22,10 @@ pub struct BoardSubmitRequest {
     pub lobby_id: LobbyId,
     pub cards: [u8; 25],
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnswerSubmitRequest {
+    pub lobby_id: LobbyId,
+    pub card_id: u8,
+}

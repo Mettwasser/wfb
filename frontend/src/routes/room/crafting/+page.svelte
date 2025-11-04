@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import { COLOR_THEMES, socket, toaster, type Card, type DraggedItemInfo } from '$lib';
     import Grid from '$lib/components/Grid.svelte';
     import { session } from '$lib/session.svelte';
@@ -6,11 +7,22 @@
     import { getCardIds } from '$lib/utils';
     import { Check, LoaderCircle } from '@lucide/svelte';
     import { Toaster } from '@skeletonlabs/skeleton-svelte';
+    import { onMount } from 'svelte';
+
+    onMount(() => {
+        socket.on('nextStage', (_) => {
+            goto('/room/choosing');
+        });
+
+        return () => {
+            socket.removeListener('nextStage');
+        };
+    });
 
     // --- STATE ---
 
     // The full card objects are now generated dynamically.
-    const allCards: Card[] = session.info!.cards;
+    const allCards: Card[] = session.info.cards;
 
     // The grid cells, 5x5 (25 cells)
     let gridCells: (Card | null)[] = $state(Array(25).fill(null));
@@ -70,7 +82,7 @@
         isSubmitting = true;
 
         let data: SubmitBoardRequest = {
-            lobbyId: session.info!.lobbyId,
+            lobbyId: session.info.lobbyId,
             // SAFETY: button is disabled unless every card is on the board
             cards: getCardIds(gridCells as Card[]),
         };
@@ -100,7 +112,7 @@
         ondrop={handlePaletteDrop}
     >
         <h2 class="border-surface-700 mb-4 flex-shrink-0 border-b pb-3 text-xl font-bold">
-            Room {session.info!.lobbyId}
+            Room {session.info.lobbyId}
         </h2>
         <div class="flex flex-row flex-wrap gap-4 overflow-y-auto overscroll-contain pr-2">
             {#each allCards as card, i}

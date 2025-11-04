@@ -12,22 +12,22 @@
     let copyBtnText = $state(inviteLinkText);
 
     function copyToClipboard() {
-        navigator.clipboard.writeText(`${FRONTEND_URL}/room/${session.info!.lobbyId}/join`);
+        navigator.clipboard.writeText(`${FRONTEND_URL}/room/${session.info.lobbyId}/join`);
         copyBtnText = 'Copied!';
         setTimeout(() => (copyBtnText = inviteLinkText), 2000);
     }
 
     function nextStage() {
-        socket.emit('triggerNextStage', session.info!.lobbyId);
+        socket.emit('triggerNextStage', session.info.lobbyId);
     }
 
     onMount(() => {
         socket.on('userJoined', (user) => {
-            session.info!.players.push(user);
+            session.info.players.push(user);
         });
 
         socket.on('nextStage', (_) => {
-            if (session.info!.isHost) {
+            if (session.info.isHost) {
                 goto('/room/crafting/host');
             } else {
                 goto('/room/crafting');
@@ -49,16 +49,16 @@
     <div class="flex flex-col items-center gap-2">
         Host:
         <div class="text-primary-100 text-xl font-bold">
-            {session.info!.hostName}
+            {session.info.hostName}
         </div>
     </div>
     <div class="bg-surface-900 w-2/3 rounded-xl p-8 shadow-lg">
         <div class="grid max-h-150 grid-cols-5 gap-4 overflow-y-auto p-4">
-            {#each session.info!.players as p (p)}
+            {#each session.info.players as p (p)}
                 <div>
                     <span
                         class="card flex justify-center gap-2 rounded-lg p-3 {p ===
-                        session.info!.userName
+                        session.info.userName
                             ? 'bg-success-300-700 card'
                             : 'preset-tonal-surface'}"
                     >
@@ -78,7 +78,7 @@
                     : 'text-primary-100 font-bold'}"
                 onclick={() => (shouldCensorRoomId = !shouldCensorRoomId)}
             >
-                {session.info!.lobbyId}
+                {session.info.lobbyId}
             </div>
         </div>
 
@@ -89,7 +89,7 @@
             </p>
         </button>
     </div>
-    {#if session.info!.isHost}
+    {#if session.info.isHost}
         <div class="flex w-2/3 justify-end">
             <button class="btn preset-gradient" onclick={nextStage}>Next Stage</button>
         </div>

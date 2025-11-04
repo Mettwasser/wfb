@@ -29,6 +29,7 @@
                 lobbyId: roomId,
                 isHost: false,
                 state: LobbyState.WaitingForPlayers,
+                correctAnswers: [],
             });
             goto(`/room/wait`);
         }

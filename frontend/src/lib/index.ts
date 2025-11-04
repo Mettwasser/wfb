@@ -12,7 +12,6 @@ export interface ServerCard {
 
 export interface Card extends ServerCard {
     color: string;
-    borderColor: string;
     textColor: string;
 }
 
@@ -33,6 +32,7 @@ export interface SessionInformation {
     players: string[];
     cards: Card[];
     state: LobbyState;
+    correctAnswers: number[];
 }
 
 export enum LobbyState {
@@ -48,30 +48,26 @@ export enum LobbyState {
     Completed,
 }
 
-export type Session = { info: SessionInformation | null };
+export type Session = { info: SessionInformation };
 
 export const COLOR_THEMES = [
     {
         color: 'bg-primary-700/70',
-        borderColor: 'border-primary-400',
         textColor: 'text-primary-400',
     },
     {
         color: 'bg-secondary-700/70',
-        borderColor: 'border-secondary-400',
         textColor: 'text-secondary-400',
     },
     {
         color: 'bg-tertiary-700/70',
-        borderColor: 'border-tertiary-400',
         textColor: 'text-tertiary-400',
     },
     {
         color: 'bg-warning-700/70',
-        borderColor: 'border-warning-400',
         textColor: 'text-warning-400',
     },
-    { color: 'bg-error-700/70', borderColor: 'border-error-400', textColor: 'text-error-400' },
+    { color: 'bg-error-700/70', textColor: 'text-error-400' },
 ];
 
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> =
@@ -88,11 +84,15 @@ socket.on('disconnect', (reason, details) => {
 });
 
 socket.on('userLeft', (user) => {
-    let idx = session.info!.players.findIndex((p) => p === user);
+    let idx = session.info.players.findIndex((p) => p === user);
 
     if (idx >= 0) {
-        session.info!.players = session.info!.players.filter((p) => p !== user);
+        session.info.players = session.info.players.filter((p) => p !== user);
     }
+});
+
+socket.on('answerSubmitted', (cardId) => {
+    session.info.correctAnswers.push(cardId);
 });
 
 export const BACKEND_URL = 'http://localhost:3000';

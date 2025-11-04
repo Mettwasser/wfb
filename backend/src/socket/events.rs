@@ -7,6 +7,7 @@ client_events! {
     JoinLobby,
     TriggerNextStage,
     SubmitBoard,
+    SubmitAnswer,
 }
 
 server_events! {
@@ -15,6 +16,8 @@ server_events! {
     LobbyClosed,
     NextStage,
     BoardSubmitted,
+    AnswerSubmitted,
+    WinnerDetected,
 }
 
 macro_rules! client_events {

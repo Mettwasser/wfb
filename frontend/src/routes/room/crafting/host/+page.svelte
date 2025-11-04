@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import { socket } from '$lib';
     import { session } from '$lib/session.svelte';
     import { Check, LoaderCircle } from '@lucide/svelte';
@@ -7,11 +8,19 @@
 
     let playersReady = new SvelteSet();
 
+    function nextStage() {
+        socket.emit('triggerNextStage', session.info.lobbyId);
+    }
+
     onMount(() => {
         socket.on('boardSubmitted', (username) => playersReady.add(username));
+        socket.on('nextStage', (_) => {
+            goto('/room/choosing/host');
+        });
 
         return () => {
             socket.removeListener('boardSubmitted');
+            socket.removeListener('nextStage');
         };
     });
 </script>
@@ -24,7 +33,7 @@
     </h2>
     <div class="bg-surface-900 w-2/3 rounded-xl p-8 shadow-lg">
         <div class="grid max-h-150 grid-cols-5 gap-4 overflow-y-auto p-4">
-            {#each session.info!.players as p (p)}
+            {#each session.info.players as p (p)}
                 <div>
                     <span
                         class="card preset-tonal-surface flex justify-center gap-2 rounded-lg p-3"
@@ -43,9 +52,9 @@
         </div>
     </div>
 
-    {#if session.info!.isHost}
+    {#if session.info.isHost}
         <div class="flex w-2/3 justify-end">
-            <button class="btn preset-gradient" onclick={() => {}}>Next Stage</button>
+            <button class="btn preset-gradient" onclick={nextStage}>Next Stage</button>
         </div>
     {/if}
 </div>

@@ -24,6 +24,11 @@ export interface SubmitBoardRequest {
     cards: number[];
 }
 
+export interface SubmitAnswerRequest {
+    lobbyId: string;
+    cards: number;
+}
+
 // --- ACKNOWLEDGMENT PAYLOADS (Server -> Client) ---
 
 export type HostLobbyAck = Acknowledgement<{
@@ -53,6 +58,8 @@ export interface ClientToServerEvents {
     triggerNextStage: (data: string) => void;
 
     submitBoard: (data: SubmitBoardRequest, callback: (ack: EmptyAck) => void) => void;
+
+    submitAnswer: (data: SubmitAnswerRequest, callback: (ack: EmptyAck) => void) => void;
 }
 
 export interface ServerToClientEvents {
@@ -66,4 +73,8 @@ export interface ServerToClientEvents {
     nextStage: (state: LobbyState) => void;
 
     boardSubmitted: (userName: string) => void;
+
+    answerSubmitted: (cardId: number) => void;
+
+    winnerDetected: (winners: string[]) => void;
 }

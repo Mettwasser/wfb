@@ -43,6 +43,7 @@ use crate::{
             ServerEvent,
         },
         request::{
+            AnswerSubmitRequest,
             BoardSubmitRequest,
             HostLobbyRequest,
             JoinLobbyRequest,
@@ -91,6 +92,7 @@ pub async fn on_connect(socket: SocketRef) {
     socket.on(ClientEvent::JoinLobby, join_lobby);
     socket.on(ClientEvent::TriggerNextStage, trigger_next_stage);
     socket.on(ClientEvent::SubmitBoard, submit_board);
+    socket.on(ClientEvent::SubmitAnswer, submit_answer);
 
     socket.on_disconnect(on_disconnect);
 }
@@ -111,17 +113,7 @@ async fn on_disconnect(socket: SocketRef, io: SocketIo, State(manager): State<Lo
         if let Some(ref mut lobby) = lobbies.get_mut(&lobby_id) {
             info!("Socket {} was in lobby {}", socket.id, lobby_id);
 
-            if let Some(idx) = lobby
-                .players
-                .iter()
-                .position(|player| player.id == socket.id)
-            {
-                let player = lobby.players.remove(idx);
-                io.to(room)
-                    .emit(ServerEvent::UserLeft, &player.name)
-                    .await
-                    .ok();
-            } else if lobby.host.id == socket.id {
+            if lobby.host.id == socket.id {
                 lobbies.remove(&lobby_id);
                 info!(%lobby_id, lobby_count = lobbies.len(), "deleted lobby");
 
@@ -129,6 +121,11 @@ async fn on_disconnect(socket: SocketRef, io: SocketIo, State(manager): State<Lo
                     .leave(room)
                     .await
                     .expect("Failed to disconnect");
+            } else if let Some(player) = lobby.remove_player(&socket.id) {
+                io.to(room)
+                    .emit(ServerEvent::UserLeft, &player.name)
+                    .await
+                    .ok();
             }
         }
     }
@@ -211,7 +208,7 @@ async fn join_lobby(
     // Check if the player name is already taken
     if lobby
         .players
-        .iter()
+        .values()
         .find(|player| player.name == request.player_name)
         .is_some()
         || lobby.host.name == request.player_name
@@ -224,13 +221,14 @@ async fn join_lobby(
         return;
     }
 
-    lobby
-        .players
-        .push(Player::new(socket.id, request.player_name.clone()));
+    lobby.players.insert(
+        socket.id,
+        Player::new(socket.id, request.player_name.clone()),
+    );
 
     let players: Vec<String> = lobby
         .players
-        .iter()
+        .values()
         .map(|player| player.name.clone())
         .collect();
 
@@ -302,7 +300,7 @@ pub async fn submit_board(
 
     let player_name = lobby
         .players
-        .iter()
+        .values()
         .find(|p| p.id == socket.id)
         .unwrap()
         .name
@@ -314,6 +312,47 @@ pub async fn submit_board(
                 .emit(ServerEvent::BoardSubmitted, player_name)
                 .await
                 .ok();
+        }
+        Err(err) => {
+            error!("Failed to send submit board ack: {}", err);
+        }
+    };
+}
+
+#[instrument(name = "lobby.submit_answer", skip(socket, io, manager, ack))]
+pub async fn submit_answer(
+    socket: SocketRef,
+    io: SocketIo,
+    Data(req): Data<AnswerSubmitRequest>,
+    State(manager): State<LobbyManager>,
+    ack: AckSender,
+) {
+    let mut lobbies = manager.lobbies.lock().await;
+
+    let Some(lobby) = lobbies.get_mut(&req.lobby_id) else {
+        return;
+    };
+
+    if !lobby.is_host(socket.id) {
+        return;
+    }
+
+    lobby.correct_answers.push(req.card_id);
+    let winners = lobby.check_winners();
+
+    match ack.send(&Acknowledgement::success(())) {
+        Ok(_) => {
+            io.within(req.lobby_id.to_string())
+                .emit(ServerEvent::AnswerSubmitted, &req.card_id)
+                .await
+                .ok();
+
+            if !winners.is_empty() {
+                io.within(req.lobby_id.to_string())
+                    .emit(ServerEvent::WinnerDetected, &winners)
+                    .await
+                    .ok();
+            }
         }
         Err(err) => {
             error!("Failed to send submit board ack: {}", err);
